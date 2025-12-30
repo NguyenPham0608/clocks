@@ -10,7 +10,7 @@
       --bg-color: #1a1a1a;
       --clock-face: #222;
       --hand-color: #eee;
-      --clock-size: 8px;
+      --clock-size: 16px;
       --transition-speed: 0.8s;
       --accent-color: #00d2ff;
     }
@@ -30,7 +30,7 @@
 
     .display-container {
       display: flex;
-      gap: calc(var(--clock-size) * 1.5);
+      gap: calc(var(--clock-size) * 0.75);
       padding: 30px;
       background: #111;
       border-radius: 20px;
@@ -41,6 +41,8 @@
 
     .digit-grid {
       display: grid;
+      grid-template-columns: repeat(8, var(--clock-size));
+      grid-template-rows: repeat(12, var(--clock-size));
       gap: 1px;
     }
 
@@ -57,10 +59,10 @@
       background-color: var(--hand-color);
       left: 50%;
       bottom: 50%;
-      width: 2px;
+      width: 3px;
       height: 50%;
       transform-origin: bottom center;
-      border-radius: 1px;
+      border-radius: 1.5px;
       will-change: transform;
       transition: transform var(--transition-speed) cubic-bezier(0.5, 0, 0.2, 1);
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -81,37 +83,26 @@
   <div class="display-container" id="display"></div>
 
   <script>
-    // ============== CONFIGURATION ==============
-    // Change this value to scale: 1, 2, 3, 4, etc.
-    const SCALE = 1;
-    // ===========================================
-
-    const BASE_WIDTH = 8;
-    const BASE_HEIGHT = 12;
-    const GRID_WIDTH = BASE_WIDTH * SCALE;
-    const GRID_HEIGHT = BASE_HEIGHT * SCALE;
-    const CLOCKS_PER_DIGIT = GRID_WIDTH * GRID_HEIGHT;
-
-    // Set grid template based on scale
-    document.documentElement.style.setProperty('--grid-cols', GRID_WIDTH);
-    document.documentElement.style.setProperty('--grid-rows', GRID_HEIGHT);
-
+    // --- CONFIGURATION ---
+    // 0=Top, 90=Right, 180=Bottom, 270=Left
+    // IDLE is Bottom-Left (225)
     const ANGLES = {
-      '|': [0, 180],
-      '-': [90, 270],
-      'r': [90, 180],
-      '7': [180, 270],
-      'L': [0, 90],
-      'J': [0, 270],
-      '>': [0, 90],
-      '<': [0, 270],
-      '^': [90, 270],
-      'v': [90, 270],
-      '.': [225, 225]
+      '|': [0, 180],      // Vertical line
+      '-': [90, 270],     // Horizontal line
+      'r': [90, 180],     // Top-left corner (┌)
+      '7': [180, 270],    // Top-right corner (┐)
+      'L': [0, 90],       // Bottom-left corner (└)
+      'J': [0, 270],      // Bottom-right corner (┘)
+      '>': [0, 90],       // Left T-junction (├)
+      '<': [0, 270],      // Right T-junction (┤)
+      '^': [90, 270],     // Bottom T (┴)
+      'v': [90, 270],     // Top T (┬)
+      '.': [225, 225]     // Idle (both hands hidden)
     };
 
-    // Original 8x12 patterns
-    const CHAR_MAP_BASE = {
+    // 8x12 Grid Character Maps (96 clocks per character)
+    // Block digits with 2-cell thick strokes
+    const CHAR_MAP = {
       '0': [
         'r', '-', '-', '-', '-', '-', '-', '7',
         '|', '.', '.', '.', '.', '.', '.', '|',
@@ -282,92 +273,6 @@
       ]
     };
 
-    // Generate expanded block for a symbol at given scale
-    function expandSymbol(symbol, scale) {
-      const block = [];
-      for (let y = 0; y < scale; y++) {
-        for (let x = 0; x < scale; x++) {
-          block.push(getExpandedCell(symbol, x, y, scale));
-        }
-      }
-      return block;
-    }
-
-    function getExpandedCell(symbol, x, y, scale) {
-      const isTop = y === 0;
-      const isBottom = y === scale - 1;
-      const isLeft = x === 0;
-      const isRight = x === scale - 1;
-
-      switch (symbol) {
-        case '.': return '.';
-        case '-': return '-';
-        case '|': return '|';
-        case 'r': // top-left corner
-          if (isTop && isLeft) return 'r';
-          if (isTop) return '-';
-          if (isLeft) return '|';
-          return 'r';
-        case '7': // top-right corner
-          if (isTop && isRight) return '7';
-          if (isTop) return '-';
-          if (isRight) return '|';
-          return '7';
-        case 'L': // bottom-left corner
-          if (isBottom && isLeft) return 'L';
-          if (isBottom) return '-';
-          if (isLeft) return '|';
-          return 'L';
-        case 'J': // bottom-right corner
-          if (isBottom && isRight) return 'J';
-          if (isBottom) return '-';
-          if (isRight) return '|';
-          return 'J';
-        case '>': // T-junction pointing right
-          if (isTop && isLeft) return '>';
-          if (isTop) return '-';
-          if (isLeft) return '|';
-          return '.';
-        case '<': // T-junction pointing left
-          if (isTop && isRight) return '<';
-          if (isTop) return '-';
-          if (isRight) return '|';
-          return '.';
-        default: return '.';
-      }
-    }
-
-    // Scale a full pattern from base to target size
-    function scalePattern(basePattern, scale) {
-      if (scale === 1) return basePattern;
-
-      const result = new Array(GRID_WIDTH * GRID_HEIGHT);
-
-      for (let srcY = 0; srcY < BASE_HEIGHT; srcY++) {
-        for (let srcX = 0; srcX < BASE_WIDTH; srcX++) {
-          const symbol = basePattern[srcY * BASE_WIDTH + srcX];
-          const block = expandSymbol(symbol, scale);
-
-          // Place the expanded block
-          for (let dy = 0; dy < scale; dy++) {
-            for (let dx = 0; dx < scale; dx++) {
-              const dstX = srcX * scale + dx;
-              const dstY = srcY * scale + dy;
-              result[dstY * GRID_WIDTH + dstX] = block[dy * scale + dx];
-            }
-          }
-        }
-      }
-
-      return result;
-    }
-
-    // Generate scaled character map
-    const CHAR_MAP = {};
-    for (const [char, pattern] of Object.entries(CHAR_MAP_BASE)) {
-      CHAR_MAP[char] = scalePattern(pattern, SCALE);
-    }
-
     // --- SYSTEM LOGIC ---
 
     class KineticClock {
@@ -394,11 +299,10 @@
       constructor(parentElement) {
         this.grid = document.createElement('div');
         this.grid.className = 'digit-grid';
-        this.grid.style.gridTemplateColumns = `repeat(${GRID_WIDTH}, var(--clock-size))`;
-        this.grid.style.gridTemplateRows = `repeat(${GRID_HEIGHT}, var(--clock-size))`;
         parentElement.appendChild(this.grid);
         this.clocks = [];
-        for (let i = 0; i < CLOCKS_PER_DIGIT; i++) {
+        // 8x12 = 96 clocks
+        for (let i = 0; i < 96; i++) {
           this.clocks.push(new KineticClock(this.grid));
         }
       }
@@ -444,12 +348,6 @@
       digits[6].renderChar(sStr[0]);
       digits[7].renderChar(sStr[1]);
     }
-
-    // Log stats
-    console.log(`Scale: ${SCALE}x`);
-    console.log(`Grid: ${GRID_WIDTH}x${GRID_HEIGHT}`);
-    console.log(`Clocks per digit: ${CLOCKS_PER_DIGIT}`);
-    console.log(`Total clocks: ${CLOCKS_PER_DIGIT * 8}`);
 
     updateTime();
     setInterval(updateTime, 1000);
