@@ -134,18 +134,18 @@
         'L', '-', '-', '-', '-', '-', '-', 'J'
       ],
       '1': [
-        '.', '.', '.', '.', 'r', '-', '-', '7',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', '|', '.', '.', '|',
-        '.', '.', '.', '.', 'L', '-', '-', 'J'
+        '.', '.', '.', '.', '.', 'r', '-', '7',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', '|', '.', '|',
+        '.', '.', '.', '.', '.', 'L', '-', 'J'
       ],
       '2': [
         'r', '-', '-', '-', '-', '-', '-', '7',
@@ -306,7 +306,7 @@
         this.hourHand.style.transitionDelay = `${delay}s`;
         this.minuteHand.style.transitionDelay = `${delay}s`;
 
-        this.setAngles(225, 225);
+        this.setAngles(0, 0);
       }
 
       setAngles(h, m) {
@@ -314,6 +314,12 @@
         this.minuteHand.style.transform = `rotate(${m}deg)`;
         this.hourHand.classList.toggle('active', h !== 225);
         this.minuteHand.classList.toggle('active', m !== 225);
+      }
+      spin(delay) {
+        setTimeout(() => {
+          this.hourHand.style.transform = `rotate(360deg)`;
+          this.minuteHand.style.transform = `rotate(720deg)`;
+        }, delay);
       }
     }
 
@@ -336,6 +342,15 @@
           this.clocks[index].setAngles(angles[0], angles[1]);
         });
       }
+      spinWave(digitIndex) {
+        this.clocks.forEach((clock, i) => {
+          const col = i % 8;
+          const colPair = Math.floor(col / 2); // 0-3 within digit
+          const globalColPair = digitIndex * 4 + colPair; // 0-31 total
+          const delay = globalColPair * 80; // 80ms between each pair
+          clock.spin(delay);
+        });
+      }
     }
 
     // --- INITIALIZATION ---
@@ -347,12 +362,14 @@
     for (let i = 0; i < NUM_SLOTS; i++) {
       digits.push(new DigitGrid(displayContainer));
     }
+    // Trigger the wave spin
+    digits.forEach((digit, i) => digit.spinWave(i));
     const randomHour = Math.floor(Math.random() * 12) + 1;
     const randomMinute = Math.floor(Math.random() * 60);
     const randomSecond = Math.floor(Math.random() * 60);
 
     // Render random time instantly
-    renderTime(randomHour, randomMinute, randomSecond);
+    updateTime()
 
     function renderTime(h, m, s) {
       h = h % 12;
@@ -401,7 +418,7 @@
 
       // Start normal ticking AFTER the first animation
       setInterval(updateTime, 1000);
-    }, 800); // match --transition-speed
+    }, 3500); // match --transition-speed
 
   </script>
 </body>
