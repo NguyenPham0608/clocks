@@ -347,6 +347,30 @@
     for (let i = 0; i < NUM_SLOTS; i++) {
       digits.push(new DigitGrid(displayContainer));
     }
+    const randomHour = Math.floor(Math.random() * 12) + 1;
+    const randomMinute = Math.floor(Math.random() * 60);
+    const randomSecond = Math.floor(Math.random() * 60);
+
+    // Render random time instantly
+    renderTime(randomHour, randomMinute, randomSecond);
+
+    function renderTime(h, m, s) {
+      h = h % 12;
+      h = h ? h : 12;
+
+      const hStr = h.toString().padStart(2, '0');
+      const mStr = m.toString().padStart(2, '0');
+      const sStr = s.toString().padStart(2, '0');
+
+      digits[0].renderChar(hStr[0]);
+      digits[1].renderChar(hStr[1]);
+      digits[2].renderChar(':');
+      digits[3].renderChar(mStr[0]);
+      digits[4].renderChar(mStr[1]);
+      digits[5].renderChar(':');
+      digits[6].renderChar(sStr[0]);
+      digits[7].renderChar(sStr[1]);
+    }
 
     function updateTime() {
       const now = new Date();
@@ -371,8 +395,14 @@
       digits[7].renderChar(sStr[1]);
     }
 
-    updateTime();
-    setInterval(updateTime, 1000);
+    // Animate to the real time after startup
+    setTimeout(() => {
+      updateTime();
+
+      // Start normal ticking AFTER the first animation
+      setInterval(updateTime, 1000);
+    }, 800); // match --transition-speed
+
   </script>
 </body>
 
